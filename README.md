@@ -1,10 +1,11 @@
-# standart_lib: Cross-Chain Bridge Event Listener
+# standard_lib: Cross-Chain Bridge Event Listener
 
 This repository contains a Python-based simulation of a critical component in a cross-chain bridge system: the **Event Listener and Relayer**. This script is designed to monitor a smart contract on a source blockchain (e.g., Ethereum), detect specific events indicating a user's intent to transfer assets, and relay this information to a destination chain's infrastructure.
 
 ## Concept
 
 A cross-chain bridge allows users to move assets or data from one blockchain to another. A common mechanism is the "lock-and-mint" model:
+
 1.  **Lock**: A user locks tokens in a smart contract on the source chain (e.g., locking ETH on Ethereum).
 2.  **Event Emission**: The smart contract emits an event (`TokensLocked`) containing details of the lock (sender, recipient, amount, destination chain).
 3.  **Listen & Verify**: Off-chain services, called listeners or relayers, constantly monitor the source chain for these events.
@@ -16,13 +17,24 @@ This script simulates steps 3 and 4. It acts as the off-chain listener that ensu
 
 The script is designed with a modular, object-oriented architecture to separate concerns and enhance maintainability. The core components are:
 
--   `BlockchainConnector`: This class is the interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract, and query for event logs within specific block ranges.
+-   `BlockchainConnector`: An interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract, and query for event logs within specific block ranges.
 
--   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured `BridgeTransferEvent` dataclass, and perform basic validation. This separation ensures that the business logic is decoupled from the data-fetching mechanism.
+-   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that the business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
+    ```python
+    from dataclasses import dataclass
+
+    @dataclass
+    class BridgeTransferEvent:
+        transaction_hash: str
+        sender: str
+        recipient: str
+        amount: int
+        destination_chain_id: int
+    ```
 
 -   `TransactionRelayer`: This component simulates the final step of relaying the event. It takes a parsed event and makes an HTTP POST request (using the `requests` library) to a mock API endpoint. In a real-world scenario, this endpoint would belong to a service responsible for signing and broadcasting the transaction on the destination chain.
 
--   `BridgeEventListener`: This is the main orchestrator. It initializes all other components, manages the application's state (i.e., the last block number it has processed), and runs the main infinite loop. This loop periodically queries for new blocks, fetches events, processes them, and hands them off to the relayer.
+-   `BridgeEventListener`: The main orchestrator. It initializes all other components, manages the application's state (i.e., the last block number it has processed), and runs the main infinite loop. This loop periodically queries for new blocks, fetches events, processes them, and hands them off to the relayer.
 
 ### Architectural Flow
 
@@ -54,9 +66,9 @@ The script is designed with a modular, object-oriented architecture to separate 
 
 1.  **Initialization**: The script starts by loading configuration from environment variables (using a `.env` file), including the RPC URL and contract address.
 
-2.  **State Management**: It checks for a `last_processed_block.dat` file. 
+2.  **State Management**: It checks for a `last_processed_block.dat` file.
     - If found, it resumes scanning from that block number, minus a `REORG_SAFETY_MARGIN` to handle potential blockchain reorganizations.
-    - If not found, it starts scanning from the current latest block, avoiding processing the entire chain history on the first run.
+    - If not found, it starts scanning from the current latest block to avoid processing the entire chain history on its first run.
 
 3.  **Polling Loop**: The `BridgeEventListener` enters an infinite loop:
     a. It fetches the latest block number from the chain.
@@ -75,7 +87,7 @@ The script is designed with a modular, object-oriented architecture to separate 
 **1. Clone the repository:**
 ```bash
 git clone <repository-url>
-cd standart_lib
+cd standard_lib
 ```
 
 **2. Create a virtual environment and install dependencies:**
