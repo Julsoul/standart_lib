@@ -1,6 +1,6 @@
 # standard_lib: Cross-Chain Bridge Event Listener
 
-This repository contains a Python script that simulates a critical component of a cross-chain bridge: the **Event Listener and Relayer**. The script monitors a smart contract on a source blockchain (e.g., Ethereum), detects specific events indicating a user's intent to transfer assets, and relays this information to a destination chain's infrastructure.
+This repository contains a Python script that simulates a critical component of a cross-chain bridge: the **Event Listener and Relayer**. The script monitors a smart contract on a source blockchain (e.g., Ethereum), detects specific events indicating a user's intent to transfer assets, and relays this information to the destination chain's infrastructure to trigger the corresponding action (e.g., minting tokens).
 
 ## Concept
 
@@ -21,7 +21,7 @@ The script is designed with a modular, object-oriented architecture to separate 
 
 -   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
     ```python
-    # In a file like models.py
+    # (e.g., in a file like models.py)
     from dataclasses import dataclass
 
     @dataclass
@@ -33,7 +33,7 @@ The script is designed with a modular, object-oriented architecture to separate 
         destination_chain_id: int
     ```
 
--   `TransactionRelayer`: This component simulates the final step of relaying the event. It takes a parsed event and makes an HTTP POST request (using the `requests` library) to a mock API endpoint. In a real-world scenario, this endpoint would belong to a service responsible for signing and broadcasting the transaction on the destination chain.
+-   `TransactionRelayer`: This component simulates the final step: relaying the event. It takes a parsed event and makes an HTTP POST request (using the `requests` library) to a mock API endpoint. In a real-world scenario, this endpoint would belong to a service responsible for signing and broadcasting the transaction on the destination chain.
 
 -   `BridgeEventListener`: The main orchestrator. It initializes all other components, manages the application's state (i.e., the last block number it has processed), and runs the main infinite loop. This loop periodically queries for new blocks, fetches events, processes them, and hands them off to the relayer.
 
@@ -63,7 +63,7 @@ The script is designed with a modular, object-oriented architecture to separate 
 +-----------------------+
 ```
 
-## How it Works
+## How It Works
 
 1.  **Initialization**: The script starts by loading configuration from environment variables (using a `.env` file), including the RPC URL and contract address.
 
@@ -113,10 +113,10 @@ Create a file named `.env` in the root directory and add the following, replacin
 
 ```env
 # Get this from a service like Infura, Alchemy, or your own node.
-ETHEREUM_RPC_URL="https://sepolia.infura.io/v3/YOUR_API_KEY"
+ETHEREUM_RPC_URL="https://sepolia.infura.io/v3/<YOUR_API_KEY>"
 
-# The address of the bridge contract you want to listen to.
-# This is an example address for the Sepolia testnet.
+# The address of the bridge smart contract to monitor.
+# NOTE: The address below is a placeholder. Replace it with a real one.
 BRIDGE_CONTRACT_ADDRESS="0x1234567890123456789012345678901234567890"
 
 # (Optional) The API endpoint for the relayer service.
