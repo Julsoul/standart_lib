@@ -17,9 +17,19 @@ This script simulates steps 3 and 4. It acts as the off-chain listener that ensu
 
 The script is designed with a modular, object-oriented architecture to separate concerns and enhance maintainability. The core components are:
 
--   `BlockchainConnector`: An interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract, and query for event logs within specific block ranges.
+-   `BlockchainConnector`: An interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract using its address and ABI, and query for event logs within specific block ranges.
+    ```python
+    # Example of contract instantiation in the connector
+    from web3 import Web3
+    
+    # Assuming web3_client and contract_abi_json are loaded
+    contract = web3_client.eth.contract(
+        address="0x...",
+        abi=contract_abi_json
+    )
+    ```
 
--   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
+-   `EventProcessor`: Its primary responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
     ```python
     # (e.g., in a file like models.py)
     from dataclasses import dataclass
@@ -33,7 +43,7 @@ The script is designed with a modular, object-oriented architecture to separate 
         destination_chain_id: int
     ```
 
--   `TransactionRelayer`: This component simulates the final step: relaying the event. It takes a parsed event and makes an HTTP POST request (using the `requests` library) to a mock API endpoint. In a real-world scenario, this endpoint would belong to a service responsible for signing and broadcasting the transaction on the destination chain.
+-   `TransactionRelayer`: This component simulates the final step: relaying the event. It takes a parsed event and sends an HTTP POST request (using the `requests` library) to a mock API endpoint. In a real-world scenario, this endpoint would belong to a service responsible for signing and broadcasting the transaction on the destination chain.
 
 -   `BridgeEventListener`: The main orchestrator. It initializes all other components, manages the application's state (i.e., the last block number it has processed), and runs the main infinite loop. This loop periodically queries for new blocks, fetches events, processes them, and hands them off to the relayer.
 
@@ -65,23 +75,23 @@ The script is designed with a modular, object-oriented architecture to separate 
 
 ## How It Works
 
-1.  **Initialization**: The script starts by loading configuration from environment variables (using a `.env` file), including the RPC URL and contract address.
+1.  **Initialization**: The script starts by loading configuration from environment variables (using a `.env` file), including the RPC URL, contract address, and ABI path.
 
 2.  **State Management**: It checks for a `last_processed_block.dat` file.
-    - If found, it resumes scanning from that block number, minus a `REORG_SAFETY_MARGIN` to handle potential blockchain reorganizations.
-    - If not found, it starts scanning from the current latest block to avoid processing the entire chain history on its first run.
+    -   If found, it resumes scanning from that block number, minus a `REORG_SAFETY_MARGIN` to handle potential blockchain reorganizations.
+    -   If not found, it starts scanning from the current latest block to avoid processing the entire chain history on its first run.
 
 3.  **Polling Loop**: The `BridgeEventListener` enters an infinite loop:
-    a. It fetches the latest block number from the chain.
-    b. It compares this with its last processed block to determine the range of new blocks to scan.
-    c. To avoid overwhelming the RPC node, it processes blocks in manageable chunks (e.g., 100 blocks at a time).
-    d. It calls `BlockchainConnector` to get all `TokensLocked` events within that chunk.
-    e. Each raw event is passed to the `EventProcessor` to be parsed and validated.
-    f. Valid, parsed events are then sent to the `TransactionRelayer`, which sends the data to an external API.
-    g. After scanning a chunk, it updates `last_processed_block.dat` to persist its progress.
-    h. It waits for a configured poll interval before starting the next iteration.
+    a.  It fetches the latest block number from the chain.
+    b.  It compares this with its last processed block to determine the range of new blocks to scan.
+    c.  To avoid overwhelming the RPC node, it processes blocks in manageable chunks (e.g., 100 blocks at a time).
+    d.  It calls `BlockchainConnector` to get all `TokensLocked` events within that chunk.
+    e.  Each raw event is passed to the `EventProcessor` to be parsed and validated.
+    f.  Valid, parsed events are then sent to the `TransactionRelayer`, which sends the data to an external API.
+    g.  After scanning a chunk, it updates `last_processed_block.dat` to persist its progress.
+    h.  It waits for a configured poll interval before starting the next iteration.
 
-4.  **Error Handling**: The script includes robust error handling for network issues, invalid data, and API failures, logging them appropriately without crashing the service.
+4.  **Error Handling**: The script includes robust error handling for network issues, invalid data, and API failures, logging them appropriately without halting the service.
 
 ## Usage
 
@@ -98,16 +108,21 @@ source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 pip install -r requirements.txt
 ```
 
+**3. Add the Contract ABI:**
+
+Create a file named `bridge_abi.json` in the root directory. Paste the JSON ABI of the smart contract you want to monitor into this file. The ABI is required to decode event logs.
+
 Your project structure should look like this:
 ```
 standard_lib/
-├── .env          # You will create this file
+├── .env
 ├── script.py
+├── bridge_abi.json
 ├── requirements.txt
 └── venv/
 ```
 
-**3. Set up your environment variables:**
+**4. Set up your environment variables:**
 
 Create a file named `.env` in the root directory and add the following, replacing the placeholder values:
 
@@ -118,6 +133,9 @@ ETHEREUM_RPC_URL="https://sepolia.infura.io/v3/<YOUR_API_KEY>"
 # The address of the bridge smart contract to monitor.
 # NOTE: The address below is a placeholder. Replace it with a real one.
 BRIDGE_CONTRACT_ADDRESS="0x1234567890123456789012345678901234567890"
+
+# Path to the JSON file containing the bridge contract's ABI.
+BRIDGE_CONTRACT_ABI_PATH="./bridge_abi.json"
 
 # (Optional) The API endpoint for the relayer service.
 # Defaults to a public mock API for testing.
@@ -130,7 +148,7 @@ POLL_INTERVAL=15
 BLOCK_CHUNK_SIZE=100
 ```
 
-**4. Run the script:**
+**5. Run the script:**
 
 ```bash
 python script.py
