@@ -1,10 +1,10 @@
 # standard_lib: Cross-Chain Bridge Event Listener
 
-This repository contains a Python-based simulation of a critical component in a cross-chain bridge system: the **Event Listener and Relayer**. This script is designed to monitor a smart contract on a source blockchain (e.g., Ethereum), detect specific events indicating a user's intent to transfer assets, and relay this information to a destination chain's infrastructure.
+This repository contains a Python script that simulates a critical component of a cross-chain bridge: the **Event Listener and Relayer**. The script monitors a smart contract on a source blockchain (e.g., Ethereum), detects specific events indicating a user's intent to transfer assets, and relays this information to a destination chain's infrastructure.
 
 ## Concept
 
-A cross-chain bridge allows users to move assets or data from one blockchain to another. A common mechanism is the "lock-and-mint" model:
+A cross-chain bridge allows users to move assets or data from one blockchain to another. A common mechanism is the "lock-and-mint" model, which typically involves these steps:
 
 1.  **Lock**: A user locks tokens in a smart contract on the source chain (e.g., locking ETH on Ethereum).
 2.  **Event Emission**: The smart contract emits an event (`TokensLocked`) containing details of the lock (sender, recipient, amount, destination chain).
@@ -19,8 +19,9 @@ The script is designed with a modular, object-oriented architecture to separate 
 
 -   `BlockchainConnector`: An interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract, and query for event logs within specific block ranges.
 
--   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that the business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
+-   `EventProcessor`: Its sole responsibility is to take raw event data from the `BlockchainConnector`, parse it into a clean, structured format, and perform basic validation. This separation ensures that business logic is decoupled from the data-fetching mechanism. For example, it might populate a `BridgeTransferEvent` dataclass:
     ```python
+    # In a file like models.py
     from dataclasses import dataclass
 
     @dataclass
@@ -82,11 +83,11 @@ The script is designed with a modular, object-oriented architecture to separate 
 
 4.  **Error Handling**: The script includes robust error handling for network issues, invalid data, and API failures, logging them appropriately without crashing the service.
 
-## Usage Example
+## Usage
 
 **1. Clone the repository:**
 ```bash
-git clone <repository-url>
+git clone https://github.com/your-username/standard_lib.git
 cd standard_lib
 ```
 
@@ -95,6 +96,15 @@ cd standard_lib
 python -m venv venv
 source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 pip install -r requirements.txt
+```
+
+Your project structure should look like this:
+```
+standard_lib/
+├── .env          # You will create this file
+├── script.py
+├── requirements.txt
+└── venv/
 ```
 
 **3. Set up your environment variables:**
@@ -106,18 +116,18 @@ Create a file named `.env` in the root directory and add the following, replacin
 ETHEREUM_RPC_URL="https://sepolia.infura.io/v3/YOUR_API_KEY"
 
 # The address of the bridge contract you want to listen to.
-# Example: A contract on the Sepolia testnet.
+# This is an example address for the Sepolia testnet.
 BRIDGE_CONTRACT_ADDRESS="0x1234567890123456789012345678901234567890"
 
 # (Optional) The API endpoint for the relayer service.
 # Defaults to a public mock API for testing.
-# RELAYER_API_URL="https://httpbin.org/post"
+RELAYER_API_URL="https://httpbin.org/post"
 
 # (Optional) How often to check for new blocks, in seconds.
-# POLL_INTERVAL=15
+POLL_INTERVAL=15
 
 # (Optional) Max number of blocks to scan in one go.
-# BLOCK_CHUNK_SIZE=100
+BLOCK_CHUNK_SIZE=100
 ```
 
 **4. Run the script:**
@@ -126,7 +136,7 @@ BRIDGE_CONTRACT_ADDRESS="0x1234567890123456789012345678901234567890"
 python script.py
 ```
 
-**Expected Output:**
+### Expected Output
 
 The console will show logs indicating the script's activity.
 
