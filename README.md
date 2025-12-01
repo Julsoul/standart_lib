@@ -1,6 +1,6 @@
 # standard_lib: Cross-Chain Bridge Event Listener
 
-This repository contains a Python script that simulates a critical component of a cross-chain bridge: the **Event Listener and Relayer**. The script monitors a smart contract on a source blockchain (e.g., Ethereum), detects specific events indicating a user's intent to transfer assets, and relays this information to the destination chain's infrastructure to trigger the corresponding action (e.g., minting tokens).
+This repository contains a Python script that simulates a critical component of a cross-chain bridge: the **Event Listener and Relayer**. The script monitors a smart contract on a source blockchain (e.g., Ethereum) for specific events that indicate a user's intent to transfer assets. It then relays this information to the destination chain's infrastructure to trigger a corresponding action (e.g., minting tokens).
 
 ## Concept
 
@@ -9,7 +9,7 @@ A cross-chain bridge allows users to move assets or data from one blockchain to 
 1.  **Lock**: A user locks tokens in a smart contract on the source chain (e.g., locking ETH on Ethereum).
 2.  **Event Emission**: The smart contract emits an event (`TokensLocked`) containing details of the lock (sender, recipient, amount, destination chain).
 3.  **Listen & Verify**: Off-chain services, called listeners or relayers, constantly monitor the source chain for these events.
-4.  **Relay & Mint**: Upon detecting a valid event, the relayer submits a signed transaction to the destination chain to mint a corresponding amount of a pegged asset (e.g., minting WETH on another chain).
+4.  **Relay & Mint**: Upon detecting a valid event, the relayer submits a signed transaction to the destination chain's smart contract, triggering it to mint a corresponding amount of a pegged asset (e.g., minting WETH on another chain).
 
 This script simulates steps 3 and 4. It acts as the off-chain listener that ensures events on the source chain are securely and reliably relayed.
 
@@ -17,7 +17,7 @@ This script simulates steps 3 and 4. It acts as the off-chain listener that ensu
 
 The script is designed with a modular, object-oriented architecture to separate concerns and enhance maintainability. The core components are:
 
--   `BlockchainConnector`: An interface to the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract using its address and ABI, and query for event logs within specific block ranges.
+-   `BlockchainConnector`: Handles all communication with the source blockchain. It uses the `web3.py` library to connect to an RPC node (like Infura or Alchemy), instantiate the bridge contract using its address and ABI, and query for event logs within specific block ranges.
     ```python
     # Example of contract instantiation in the connector
     from web3 import Web3
@@ -110,7 +110,9 @@ pip install -r requirements.txt
 
 **3. Add the Contract ABI:**
 
-Create a file named `bridge_abi.json` in the root directory. Paste the JSON ABI of the smart contract you want to monitor into this file. The ABI is required to decode event logs.
+Create a file named `bridge_abi.json` in the root directory and paste the JSON ABI of the smart contract you want to monitor. The ABI is required to decode event logs.
+
+*Tip: You can typically get the ABI from the contract's source code or a block explorer like Etherscan.*
 
 Your project structure should look like this:
 ```
@@ -130,8 +132,7 @@ Create a file named `.env` in the root directory and add the following, replacin
 # Get this from a service like Infura, Alchemy, or your own node.
 ETHEREUM_RPC_URL="https://sepolia.infura.io/v3/<YOUR_API_KEY>"
 
-# The address of the bridge smart contract to monitor.
-# NOTE: The address below is a placeholder. Replace it with a real one.
+# The address of the deployed bridge smart contract to monitor.
 BRIDGE_CONTRACT_ADDRESS="0x1234567890123456789012345678901234567890"
 
 # Path to the JSON file containing the bridge contract's ABI.
